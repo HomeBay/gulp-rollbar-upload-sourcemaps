@@ -76,7 +76,7 @@ function rollbar(config) {
       }
 
       if (httpResponse.statusCode === 200) {
-        gutil.log("SUCCESS:", formData.source_map.options.filename);
+        gutil.log("SUCCESS:", formData.source_map.options.filename.replace(/\.{2}\/?/g, ""));
 
       } else {
         var message = JSON.parse(body).message;
