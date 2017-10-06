@@ -1,6 +1,6 @@
 {
   "name": "gulp-rollbar-upload-sourcemaps",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Upload source map files to Rollbar.com",
   "homepage": "https://github.com/HomeBay/gulp-rollbar",
   "repository": "git://github.com/HomeBay/gulp-rollbar.git",

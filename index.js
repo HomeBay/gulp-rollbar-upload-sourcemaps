@@ -75,10 +75,7 @@ function rollbar(config) {
         throw new PluginError(PLUGIN_NAME, err, {showStack: true});
       }
 
-      if (httpResponse.statusCode === 200) {
-        gutil.log("SUCCESS:", formData.source_map.options.filename.replace(/\.{2}\/?/g, ""));
-
-      } else {
+      if (httpResponse.statusCode !== 200) {
         var message = JSON.parse(body).message;
         gutil.log("FAILURE:", "(http code: ", httpResponse.statusCode, ", error: \"" + message + "\"");
       }
