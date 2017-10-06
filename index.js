@@ -2,7 +2,6 @@
 
 var through = require('through2');
 var path = require('path');
-var File = require('vinyl');
 var gutil = require('gulp-util');
 var PluginError = gutil.PluginError;
 var requestRetry = require('requestretry');
@@ -25,30 +24,30 @@ function rollbar(config) {
   if (!config.version) {
     throw new PluginError(PLUGIN_NAME, 'missing `version` in config');
   }
-  if (!config.publicUrlPrefix) {
-    throw new PluginError(PLUGIN_NAME, 'missing `publicUrlPrefix` in config');
+  if (typeof config.getPublicAssetUrl !== "function") {
+    throw new PluginError(PLUGIN_NAME, 'missing `getPublicAssetUrl` in config');
   }
 
   function postSourcemap(file, encoding, callback) {
 
-    if (file.isNull() || !file.extname !== '.map') {
+    if (file.isNull() || !file.sourceMap) {
       return callback(null, file);
     }
 
     if (file.isStream()) {
-      return callback(new Error(PLUGIN_NAME + '-write: Streaming not supported'));
+      return callback(new Error(PLUGIN_NAME + 'streams are not supported'));
     }
 
-    var sourceMap = file;
+    var sourceMap = file.sourceMap;
 
     var formData = {
       access_token: config.accessToken,
       version: config.version,
-      minified_url: [config.publicUrlPrefix, sourceMap.file].join('/'),
+      minified_url: config.getPublicAssetUrl(file),
       source_map: {
         value: new Buffer(JSON.stringify(sourceMap)),
         options: {
-          filename: sourceMap.file + '.map',
+          filename: [sourceMap.file, 'map'].join('.'),
           contentType: 'application/octet-stream'
         }
       }
@@ -58,7 +57,7 @@ function rollbar(config) {
 
       // Uses default strategy but use custom strategy to trigger logs.
       if (err || response.statusCode !== 200) {
-        gutil.log("RETRYING AFTER ERROR:", err);
+        gutil.log("RETRYING:", file.relative);
       }
       return requestRetry.RetryStrategies.HTTPOrNetworkError(err, response);
 
@@ -77,18 +76,20 @@ function rollbar(config) {
       }
 
       if (httpResponse.statusCode === 200) {
-        gutil.log("success:", formData.source_map.options.filename);
+        gutil.log("SUCCESS:", formData.source_map.options.filename);
 
       } else {
         var message = JSON.parse(body).message;
-        gutil.log("failure:", "(http code: ", httpResponse.statusCode, ", error: \"" + message + "\"");
+        gutil.log("FAILURE:", "(http code: ", httpResponse.statusCode, ", error: \"" + message + "\"");
       }
 
       callback(null, file);
     });
+
   }
 
   return through.obj(postSourcemap);
+
 }
 
 module.exports = rollbar;
